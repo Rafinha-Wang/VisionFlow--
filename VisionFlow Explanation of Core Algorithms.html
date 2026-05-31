@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VisionFlow 核心算法讲解</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --accent: #0f172a;
+      --soft: #eff6ff;
+      --code: #0f172a;
+      --green: #16a34a;
+      --orange: #ea580c;
+      --red: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.75;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 36px 24px 64px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #0f172a, #1d4ed8);
+      color: white;
+      border-radius: 28px;
+      padding: 42px 44px;
+      box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 42px;
+      letter-spacing: 0.5px;
+    }
+
+    .hero p {
+      margin: 14px 0 0;
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.86);
+      max-width: 900px;
+    }
+
+    .tag-row {
+      margin-top: 22px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 7px 13px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.22);
+      font-size: 14px;
+    }
+
+    .toc {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin: 26px 0;
+    }
+
+    .toc a {
+      text-decoration: none;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px 18px;
+      color: var(--text);
+      box-shadow: 0 10px 28px rgba(15,23,42,0.06);
+      transition: 0.2s;
+    }
+
+    .toc a:hover {
+      transform: translateY(-2px);
+      border-color: #bfdbfe;
+      box-shadow: 0 16px 34px rgba(37,99,235,0.12);
+    }
+
+    .toc strong {
+      display: block;
+      color: var(--primary);
+      font-size: 17px;
+      margin-bottom: 4px;
+    }
+
+    .toc span {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      padding: 34px 38px;
+      margin: 26px 0;
+      box-shadow: 0 12px 30px rgba(15,23,42,0.06);
+    }
+
+    .section h2 {
+      font-size: 28px;
+      margin: 0 0 16px;
+      color: var(--accent);
+      border-left: 6px solid var(--primary);
+      padding-left: 14px;
+    }
+
+    .section h3 {
+      font-size: 20px;
+      margin-top: 26px;
+      color: var(--accent);
+    }
+
+    .lead {
+      font-size: 17px;
+      color: #374151;
+      background: var(--soft);
+      border-left: 4px solid var(--primary);
+      padding: 14px 18px;
+      border-radius: 12px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin: 18px 0;
+    }
+
+    .mini-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px 20px;
+      background: #fbfdff;
+    }
+
+    .mini-card h4 {
+      margin: 0 0 8px;
+      color: var(--primary-dark);
+      font-size: 17px;
+    }
+
+    .mini-card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .flow {
+      margin: 22px 0;
+      padding: 22px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 20px;
+    }
+
+    .flow-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .node {
+      background: white;
+      border: 1px solid #dbeafe;
+      color: #1e3a8a;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-weight: 600;
+      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.08);
+    }
+
+    .arrow {
+      color: var(--primary);
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    pre {
+      background: var(--code);
+      color: #e5e7eb;
+      padding: 18px 20px;
+      border-radius: 16px;
+      overflow-x: auto;
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    code {
+      font-family: Consolas, Monaco, "Courier New", monospace;
+    }
+
+    .formula {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 16px 20px;
+      font-family: Consolas, Monaco, "Courier New", monospace;
+      color: #0f172a;
+      font-size: 16px;
+      margin: 14px 0;
+    }
+
+    .highlight {
+      color: var(--primary-dark);
+      font-weight: 700;
+    }
+
+    .warning {
+      background: #fff7ed;
+      border-left: 4px solid var(--orange);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin: 18px 0;
+    }
+
+    .success {
+      background: #f0fdf4;
+      border-left: 4px solid var(--green);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin: 18px 0;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin: 18px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    th, td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-weight: 700;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .compare .box {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .compare .box strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--primary-dark);
+    }
+
+    .footer {
+      color: var(--muted);
+      text-align: center;
+      margin-top: 38px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .toc {
+        grid-template-columns: 1fr 1fr;
+      }
+      .grid-2, .compare {
+        grid-template-columns: 1fr;
+      }
+      .hero h1 {
+        font-size: 32px;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .toc {
+        grid-template-columns: 1fr;
+      }
+      .section {
+        padding: 26px 22px;
+      }
+      .hero {
+        padding: 32px 26px;
+      }
+    }
+
+    @media print {
+      body {
+        background: white;
+      }
+      .page {
+        max-width: none;
+      }
+      .hero, .section, .toc a {
+        box-shadow: none;
+      }
+      .toc {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <h1>VisionFlow 核心算法讲解</h1>
+      <p>基于纯 C++ 的相机运动分析与视频稳像系统：从局部块匹配到全局仿射补偿，再到相机轨迹平滑与虚拟云台策略。</p>
+      <div class="tag-row">
+        <span class="tag">块匹配运动估计</span>
+        <span class="tag">RANSAC 异常过滤</span>
+        <span class="tag">仿射变换补偿</span>
+        <span class="tag">轨迹平滑</span>
+        <span class="tag">虚拟云台</span>
+        <span class="tag">VFVID 原生容器</span>
+      </div>
+    </section>
+
+    <nav class="toc">
+      <a href="#block-matching">
+        <strong>01 块匹配</strong>
+        <span>估计局部图像块位移</span>
+      </a>
+      <a href="#ransac">
+        <strong>02 RANSAC</strong>
+        <span>过滤错误匹配和前景干扰</span>
+      </a>
+      <a href="#affine">
+        <strong>03 仿射补偿</strong>
+        <span>用全局变换对齐画面</span>
+      </a>
+      <a href="#gimbal">
+        <strong>04 虚拟云台</strong>
+        <span>平滑相机轨迹与运镜</span>
+      </a>
+      <a href="#vfvid">
+        <strong>05 VFVID 容器</strong>
+        <span>纯 C++ 帧序列视频格式</span>
+      </a>
+    </nav>
+
+    <section class="section">
+      <h2>整体算法流程</h2>
+      <p class="lead">
+        VisionFlow 的核心思想是：先从相邻帧中估计相机运动，再过滤局部干扰，接着用仿射模型进行画面补偿，最后通过轨迹平滑和虚拟云台策略提升视频稳定感。
+      </p>
+
+      <div class="flow">
+        <div class="flow-row">
+          <span class="node">BMP / MP4 / VFVID</span>
+          <span class="arrow">→</span>
+          <span class="node">统一成 BMP 帧序列</span>
+          <span class="arrow">→</span>
+          <span class="node">灰度化</span>
+          <span class="arrow">→</span>
+          <span class="node">块匹配</span>
+          <span class="arrow">→</span>
+          <span class="node">RANSAC</span>
+          <span class="arrow">→</span>
+          <span class="node">仿射估计</span>
+          <span class="arrow">→</span>
+          <span class="node">轨迹平滑</span>
+          <span class="arrow">→</span>
+          <span class="node">稳定输出</span>
+          <span class="arrow">→</span>
+          <span class="node">MP4 / VFVID / 帧目录</span>
+        </div>
+      </div>
+
+      <div class="compare">
+        <div class="box">
+          <strong>局部层面</strong>
+          找出每个图像块在下一帧中的位移，得到大量局部运动线索。
+        </div>
+        <div class="box">
+          <strong>全局层面</strong>
+          用 RANSAC 找出大部分背景区域都支持的统一相机运动。
+        </div>
+        <div class="box">
+          <strong>时间层面</strong>
+          对多帧相机轨迹进行平滑，削弱高频抖动，保留主要运镜趋势。
+        </div>
+      </div>
+    </section>
+
+    <section id="block-matching" class="section">
+      <h2>1. 块匹配运动估计</h2>
+      <p class="lead">
+        块匹配的目标是估计相邻两帧之间的局部位移。它不是直接判断整张图移动了多少，而是把图像切成许多小块，分别寻找每个小块在下一帧中最相似的位置。
+      </p>
+
+      <h3>1.1 基本思路</h3>
+      <div class="flow">
+        <div class="flow-row">
+          <span class="node">当前帧小块</span>
+          <span class="arrow">→</span>
+          <span class="node">在下一帧附近搜索</span>
+          <span class="arrow">→</span>
+          <span class="node">计算相似度</span>
+          <span class="arrow">→</span>
+          <span class="node">得到 dx, dy</span>
+        </div>
+      </div>
+
+      <p>
+        假设当前帧中有一个 <span class="highlight">32×32</span> 的图像块，位置是 <code>(x, y)</code>。程序会在下一帧的附近区域内搜索，找到最像这个块的位置。如果最像的位置是 <code>(x + 5, y - 2)</code>，那么这个块的局部运动就是：
+      </p>
+
+      <div class="formula">
+        dx = 5, dy = -2
+      </div>
+
+      <h3>1.2 相似度如何计算</h3>
+      <p>常见做法是使用 SAD，也就是绝对差求和：</p>
+
+      <div class="formula">
+        SAD(dx, dy) = Σ | I1(x, y) - I2(x + dx, y + dy) |
+      </div>
+
+      <p>
+        SAD 越小，说明两个图像块越相似。程序会在搜索范围内找到 SAD 最小的位置，把它作为该图像块的匹配结果。
+      </p>
+
+      <h3>1.3 关键参数</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>参数</th>
+              <th>含义</th>
+              <th>对算法的影响</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>blockSize</code></td>
+              <td>每个匹配块的大小</td>
+              <td>越大越稳定，但细节不敏感；越小越灵敏，但更容易受噪声影响。</td>
+            </tr>
+            <tr>
+              <td><code>blockStep</code></td>
+              <td>相邻匹配块之间的间隔</td>
+              <td>越小匹配点越多，结果更稳定，但速度更慢。</td>
+            </tr>
+            <tr>
+              <td><code>searchRadius</code></td>
+              <td>每个块在下一帧中搜索的最大范围</td>
+              <td>越大越能处理大运镜，但也更慢、更容易误匹配。</td>
+            </tr>
+            <tr>
+              <td><code>sampleStride</code></td>
+              <td>块内部采样步长</td>
+              <td>越小越准确，越大越快。</td>
+            </tr>
+            <tr>
+              <td><code>textureThreshold</code></td>
+              <td>过滤低纹理图像块</td>
+              <td>避免天空、白墙等平坦区域造成错误匹配。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>1.4 为什么需要块匹配</h3>
+      <p>
+        视频稳像的第一步是知道相机怎么动。块匹配提供了大量局部位移信息，这些信息后续会被 RANSAC 进一步筛选，最终估计出全局相机运动。
+      </p>
+
+      <div class="success">
+        <strong>小结：</strong>块匹配用于从相邻帧中提取局部运动线索，为后续全局仿射运动估计提供匹配点基础。
+      </div>
+    </section>
+
+    <section id="ransac" class="section">
+      <h2>2. RANSAC 异常匹配过滤</h2>
+      <p class="lead">
+        块匹配得到的局部位移并不全是可靠的。画面中的人物、车辆、光照变化、低纹理区域都会造成错误匹配。RANSAC 的作用就是从这些匹配点中找出最符合全局相机运动的一批点。
+      </p>
+
+      <h3>2.1 为什么需要 RANSAC</h3>
+      <p>
+        视频画面中不仅有相机运动，还有前景物体运动。例如人从画面中走过，块匹配会认为人所在区域发生了位移。但这个位移并不代表相机运动。
+      </p>
+
+      <div class="warning">
+        <strong>问题：</strong>如果直接使用所有匹配点，前景主体运动和错误匹配会干扰相机运动估计，导致稳像后画面抽动或漂移。
+      </div>
+
+      <h3>2.2 RANSAC 的基本流程</h3>
+
+      <div class="flow">
+        <div class="flow-row">
+          <span class="node">随机选少量匹配点</span>
+          <span class="arrow">→</span>
+          <span class="node">拟合运动模型</span>
+          <span class="arrow">→</span>
+          <span class="node">统计内点数量</span>
+          <span class="arrow">→</span>
+          <span class="node">重复多次</span>
+          <span class="arrow">→</span>
+          <span class="node">选择最佳模型</span>
+        </div>
+      </div>
+
+      <p>
+        RANSAC 会反复随机选择少量匹配点，尝试拟合一个全局运动模型。然后检查其他匹配点是否也支持这个模型。如果某个点的预测误差小于阈值，就认为它是 <span class="highlight">内点 inlier</span>；否则就是 <span class="highlight">外点 outlier</span>。
+      </p>
+
+      <div class="formula">
+        error = distance( predicted_position, actual_matched_position )
+      </div>
+
+      <p>如果：</p>
+
+      <div class="formula">
+        error &lt; ransacThreshold
+      </div>
+
+      <p>那么这个匹配点就被视为内点。</p>
+
+      <h3>2.3 内点和外点</h3>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>内点 inliers</h4>
+          <p>符合全局相机运动规律的匹配点，通常来自背景、建筑、地面等稳定区域。</p>
+        </div>
+        <div class="mini-card">
+          <h4>外点 outliers</h4>
+          <p>不符合全局相机运动的匹配点，可能来自前景主体、噪声、光照变化或错误匹配。</p>
+        </div>
+      </div>
+
+      <h3>2.4 关键参数</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>参数</th>
+              <th>含义</th>
+              <th>影响</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>ransacIterations</code></td>
+              <td>RANSAC 迭代次数</td>
+              <td>越大越稳，但速度更慢。</td>
+            </tr>
+            <tr>
+              <td><code>ransacThreshold</code></td>
+              <td>判断内点的误差阈值</td>
+              <td>越大越宽松，越小越严格。</td>
+            </tr>
+            <tr>
+              <td><code>inlierRatio</code></td>
+              <td>内点比例</td>
+              <td>反映当前运动估计是否可靠。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="success">
+        <strong>小结：</strong>RANSAC 用来过滤前景运动、错误匹配和噪声，只保留符合统一全局相机运动的可靠匹配点。
+      </div>
+    </section>
+
+    <section id="affine" class="section">
+      <h2>3. 仿射变换补偿</h2>
+      <p class="lead">
+        仿射变换补偿是 VisionFlow 实现稳像的核心步骤。它根据估计出的相机运动，对当前帧进行反向变换，使画面尽量对齐到稳定后的目标视角。
+      </p>
+
+      <h3>3.1 什么是仿射变换</h3>
+      <p>仿射变换可以表示平移、旋转、缩放和轻微倾斜。它的数学形式是：</p>
+
+      <div class="formula">
+        x' = a · x + b · y + tx<br>
+        y' = c · x + d · y + ty
+      </div>
+
+      <p>其中：</p>
+
+      <ul>
+        <li><code>tx, ty</code> 表示平移；</li>
+        <li><code>a, b, c, d</code> 可以表示旋转、缩放和倾斜；</li>
+        <li><code>x, y</code> 是原图像坐标；</li>
+        <li><code>x', y'</code> 是变换后的图像坐标。</li>
+      </ul>
+
+      <h3>3.2 为什么不用简单平移</h3>
+      <p>
+        真实拍摄中的相机抖动不一定只是左右上下移动，还可能存在轻微旋转、缩放或透视变化。如果只使用简单的 <code>dx, dy</code> 平移，无法处理这些复杂情况。
+      </p>
+
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>简单平移</h4>
+          <p>只能处理左右上下移动，适合非常简单的抖动。</p>
+        </div>
+        <div class="mini-card">
+          <h4>仿射变换</h4>
+          <p>可以同时表达平移、旋转、缩放，更适合真实手持视频。</p>
+        </div>
+      </div>
+
+      <h3>3.3 补偿的核心思想</h3>
+      <p>
+        程序先估计原始相机轨迹，再生成一个更平滑的目标轨迹。每一帧需要执行的补偿量可以理解为：
+      </p>
+
+      <div class="formula">
+        correction = smooth_camera_path - original_camera_path
+      </div>
+
+      <p>
+        如果原始轨迹某一帧突然向右抖了一下，而平滑轨迹没有这个突然变化，那么程序就会对该帧施加一个反向补偿，把画面拉回目标位置。
+      </p>
+
+      <h3>3.4 裁剪与缩放</h3>
+      <p>
+        仿射补偿后，图像边缘可能出现空白区域。为了避免输出视频出现黑边，程序需要进行裁剪和缩放。
+      </p>
+
+      <div class="warning">
+        <strong>注意：</strong>稳像效果越强，通常需要的裁剪越大。因此 <code>correctionStrength</code> 和 <code>maxCropRatio</code> 需要平衡。
+      </div>
+
+      <h3>3.5 关键参数</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>参数</th>
+              <th>含义</th>
+              <th>影响</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>correctionStrength</code></td>
+              <td>稳像补偿强度</td>
+              <td>越大稳像越明显，但裁剪和拉扯风险更高。</td>
+            </tr>
+            <tr>
+              <td><code>maxCropRatio</code></td>
+              <td>最大裁剪比例</td>
+              <td>越大稳像空间越大，但画面损失更多。</td>
+            </tr>
+            <tr>
+              <td><code>borderPadding</code></td>
+              <td>安全边距</td>
+              <td>减少黑边，但会增加裁剪。</td>
+            </tr>
+            <tr>
+              <td><code>cropSafeCorrection</code></td>
+              <td>安全裁剪约束</td>
+              <td>避免补偿过强导致边缘异常。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="success">
+        <strong>小结：</strong>仿射补偿根据相机运动估计结果对图像进行反向变换，使当前帧对齐到平滑后的目标轨迹，从而达到视频稳像效果。
+      </div>
+    </section>
+
+    <section id="gimbal" class="section">
+      <h2>4. 相机轨迹平滑 + 虚拟云台策略</h2>
+      <p class="lead">
+        轨迹平滑和虚拟云台策略决定了输出视频的观感。VisionFlow 不只是逐帧对齐，而是把相机运动看成一条连续轨迹，再对轨迹进行平滑处理。
+      </p>
+
+      <h3>4.1 为什么要平滑轨迹</h3>
+      <p>
+        如果只让每一帧对齐上一帧，误差会不断累积，还可能产生新的抖动。正确做法是先得到整个视频的原始相机轨迹，再生成一条更平滑的目标轨迹。
+      </p>
+
+      <div class="flow">
+        <div class="flow-row">
+          <span class="node">原始相机轨迹</span>
+          <span class="arrow">→</span>
+          <span class="node">去除高频抖动</span>
+          <span class="arrow">→</span>
+          <span class="node">平滑目标轨迹</span>
+          <span class="arrow">→</span>
+          <span class="node">计算补偿量</span>
+        </div>
+      </div>
+
+      <p>
+        这里的“高频抖动”可以理解为相机在短时间内突然来回跳动；而“低频趋势”则是用户真实想保留的运镜方向。
+      </p>
+
+      <h3>4.2 static 模式</h3>
+      <p>
+        static 模式适合固定机位或基本不运镜的视频。它的目标是尽量锁定初始视角，让画面更像三脚架固定拍摄。
+      </p>
+
+      <div class="formula">
+        static：尽量把目标轨迹拉回第一帧附近
+      </div>
+
+      <p>核心参数是：</p>
+
+      <ul>
+        <li><code>lockToOriginStrength</code>：锁定第一帧视角的强度；</li>
+        <li><code>correctionStrength</code>：补偿强度；</li>
+        <li><code>smoothRadius</code>：轨迹平滑半径。</li>
+      </ul>
+
+      <h3>4.3 motion 模式与虚拟云台</h3>
+      <p>
+        motion 模式适合跟拍、平移、推拉等运镜视频。它不会强行把画面锁死，而是模拟虚拟云台效果：保留原始运镜的大方向，同时削弱高频抖动。
+      </p>
+
+      <div class="formula">
+        motion：保留大方向运镜，平滑短时间抖动
+      </div>
+
+      <p>
+        这类似大疆云台或运动相机电子防抖的观感：用户仍然能看到镜头在移动，但移动过程更顺滑、更稳定。
+      </p>
+
+      <h3>4.4 虚拟云台参数</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>参数</th>
+              <th>含义</th>
+              <th>影响</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>virtualGimbalEnabled</code></td>
+              <td>是否启用虚拟云台</td>
+              <td>motion 模式建议开启。</td>
+            </tr>
+            <tr>
+              <td><code>gimbalPositionStiffness</code></td>
+              <td>位置跟随强度</td>
+              <td>越大越跟手，越小越平滑。</td>
+            </tr>
+            <tr>
+              <td><code>gimbalPositionDamping</code></td>
+              <td>位置阻尼</td>
+              <td>越大运动越连续，但可能拖尾。</td>
+            </tr>
+            <tr>
+              <td><code>maxGimbalPositionSpeed</code></td>
+              <td>最大移动速度</td>
+              <td>决定能否跟上快速运镜。</td>
+            </tr>
+            <tr>
+              <td><code>maxGimbalPositionAccel</code></td>
+              <td>最大加速度</td>
+              <td>决定响应方向变化的速度。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>4.5 static 与 motion 的区别</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>模式</th>
+              <th>目标</th>
+              <th>适合视频</th>
+              <th>错误使用的后果</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>static</strong></td>
+              <td>尽量锁定第一帧视角</td>
+              <td>固定机位、小幅抖动</td>
+              <td>用于运镜视频时，会显得画面被强行拉住。</td>
+            </tr>
+            <tr>
+              <td><strong>motion</strong></td>
+              <td>保留运镜趋势，削弱抖动</td>
+              <td>跟拍、平移、推拉、走路镜头</td>
+              <td>用于固定镜头时，稳定效果可能不如 static 明显。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="success">
+        <strong>小结：</strong>VisionFlow 将相机运动看作时间序列轨迹，通过 static 和 motion 两套策略分别处理固定镜头与运镜镜头。motion 模式使用虚拟云台思想，在保留主要运镜趋势的同时削弱高频抖动。
+      </div>
+    </section>
+
+    <section id="vfvid" class="section">
+      <h2>5. VFVID 纯 C++ 原生视频容器</h2>
+      <p class="lead">
+        VFVID 是 VisionFlow 自定义的简易视频容器。它不是要替代 MP4，而是为项目提供一种不依赖 ffmpeg、OpenCV 或其他视频库的纯 C++ 帧序列存储方式，用于比赛展示、实验复现和批处理队列中的原生输入输出。
+      </p>
+
+      <h3>5.1 为什么需要 VFVID</h3>
+      <p>
+        MP4 是通用视频格式，体积小、播放方便，但解码和编码非常复杂。如果把 MP4 解码器直接集成进项目，通常需要引入 FFmpeg 这类大型第三方库。VisionFlow 的 MP4 支持采用外部 <code>ffmpeg.exe</code> 做格式转换，而 VFVID 则展示了另一条路线：
+      </p>
+
+      <div class="success">
+        <strong>核心定位：</strong>VFVID 用 C++ 标准库直接读写图像帧数据，让项目在不依赖视频编解码库的情况下，也能拥有“视频文件”级别的输入输出能力。
+      </div>
+
+      <div class="compare">
+        <div class="box">
+          <strong>BMP 帧目录</strong>
+          最基础、最稳妥，适合作为绝对合规的核心算法输入。
+        </div>
+        <div class="box">
+          <strong>MP4 文件</strong>
+          用户友好，通过外部 <code>ffmpeg.exe</code> 转换格式，不参与核心算法。
+        </div>
+        <div class="box">
+          <strong>VFVID 文件</strong>
+          VisionFlow 原生容器，纯 C++ 读写，体现工程完整性。
+        </div>
+      </div>
+
+      <h3>5.2 文件结构</h3>
+      <p>
+        VFVID 当前版本采用简单的二进制顺序存储结构。文件开头是固定头部，后面依次存放每一帧的 RGB24 原始像素数据。
+      </p>
+
+      <pre><code>[VFVID Header]
+magic       = "VFVID01"
+width       = 图像宽度
+height      = 图像高度
+fps         = 帧率
+frame_count = 帧数
+channels    = 3
+frame_bytes = width * height * 3
+
+[Frame Data]
+frame_0001 RGB24 pixels
+frame_0002 RGB24 pixels
+frame_0003 RGB24 pixels
+...</code></pre>
+
+      <p>
+        由于每帧都是 RGB24 原始数据，VFVID 是无损的，但体积会比 MP4 大很多。这是有意设计的取舍：它追求结构简单、可解释、纯 C++ 易实现，而不是追求压缩率。
+      </p>
+
+      <h3>5.3 读写流程</h3>
+      <div class="flow">
+        <div class="flow-row">
+          <span class="node">BMP 帧目录</span>
+          <span class="arrow">→</span>
+          <span class="node">读取 RGB24</span>
+          <span class="arrow">→</span>
+          <span class="node">写入 VFVID 头部</span>
+          <span class="arrow">→</span>
+          <span class="node">连续写入帧数据</span>
+        </div>
+      </div>
+
+      <div class="flow">
+        <div class="flow-row">
+          <span class="node">VFVID 文件</span>
+          <span class="arrow">→</span>
+          <span class="node">读取头部信息</span>
+          <span class="arrow">→</span>
+          <span class="node">逐帧读取 RGB24</span>
+          <span class="arrow">→</span>
+          <span class="node">还原 BMP 帧目录</span>
+        </div>
+      </div>
+
+      <h3>5.4 在稳像管线中的位置</h3>
+      <p>
+        VisionFlow 的核心稳像算法仍然处理统一的 BMP 帧序列。VFVID 的作用是在算法前后做格式适配：
+      </p>
+
+      <pre><code>输入 input.vfvid
+        ↓ 纯 C++ 解包
+临时 BMP 帧序列
+        ↓ VisionFlow 核心稳像算法
+稳定后的 BMP 帧序列
+        ↓ 纯 C++ 打包
+输出 output.vfvid</code></pre>
+
+      <p>
+        这样做的好处是：算法模块不需要关心输入来自 MP4、BMP 文件夹还是 VFVID；主程序只需要把不同输入统一转换为帧序列，再交给同一套运动估计和稳像流程。
+      </p>
+
+      <h3>5.5 支持的命令</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>命令</th>
+              <th>作用</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>VisionFlow.exe --pack input_frames output.vfvid 30</code></td>
+              <td>打包</td>
+              <td>把 BMP 帧目录打包成 VFVID，最后一个参数是 FPS。</td>
+            </tr>
+            <tr>
+              <td><code>VisionFlow.exe --unpack input.vfvid output_frames</code></td>
+              <td>解包</td>
+              <td>把 VFVID 还原成 BMP 帧目录。</td>
+            </tr>
+            <tr>
+              <td><code>VisionFlow.exe --vfinfo input.vfvid</code></td>
+              <td>查看信息</td>
+              <td>显示宽度、高度、FPS、帧数、像素格式和数据大小。</td>
+            </tr>
+            <tr>
+              <td><code>VisionFlow.exe --mode auto input.vfvid output.vfvid</code></td>
+              <td>直接稳像</td>
+              <td>输入和输出都使用 VisionFlow 原生容器。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>5.6 与批处理队列的关系</h3>
+      <p>
+        批处理队列可以混合使用 BMP、MP4 和 VFVID。例如：
+      </p>
+
+      <pre><code>mode,input,output
+auto,case1.mp4,output/case1.mp4
+static,case2.vfvid,output/case2.vfvid
+motion,case3_frames,output/case3_frames</code></pre>
+
+      <p>
+        这使 VisionFlow 形成三层输入输出能力：BMP 作为基础帧序列，MP4 面向普通用户，VFVID 面向纯 C++ 工程展示和实验数据管理。
+      </p>
+
+      <div class="warning">
+        <strong>注意：</strong>VFVID 当前版本没有压缩、索引表和随机访问能力，因此它更适合作为项目原生实验格式，而不是通用视频格式。
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>算法与工程模块之间的关系</h2>
+      <p class="lead">
+        块匹配、RANSAC、仿射补偿和虚拟云台共同组成核心稳像算法；VFVID 则位于算法外层，负责纯 C++ 视频帧序列管理。
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>步骤</th>
+              <th>输入</th>
+              <th>输出</th>
+              <th>作用</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>块匹配运动估计</td>
+              <td>相邻两帧灰度图</td>
+              <td>局部匹配点</td>
+              <td>获得图像块位移线索</td>
+            </tr>
+            <tr>
+              <td>RANSAC 过滤</td>
+              <td>局部匹配点</td>
+              <td>可靠内点 + 全局模型</td>
+              <td>过滤前景运动和错误匹配</td>
+            </tr>
+            <tr>
+              <td>仿射变换补偿</td>
+              <td>全局相机运动</td>
+              <td>补偿后的图像帧</td>
+              <td>把画面对齐到目标视角</td>
+            </tr>
+            <tr>
+              <td>轨迹平滑 + 虚拟云台</td>
+              <td>多帧相机轨迹</td>
+              <td>平滑目标轨迹</td>
+              <td>决定最终视频观感</td>
+            </tr>
+            <tr>
+              <td>VFVID 原生容器</td>
+              <td>BMP 帧序列或 VFVID 文件</td>
+              <td>VFVID 文件或 BMP 帧序列</td>
+              <td>提供纯 C++ 视频序列打包、解包和信息读取能力</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <pre><code>核心总结：
+局部块匹配负责“找运动”；
+RANSAC 负责“筛掉错误运动”；
+仿射补偿负责“把画面拉回稳定位置”；
+轨迹平滑和虚拟云台负责“让输出视频看起来顺”；
+VFVID 负责“用纯 C++ 管理视频帧序列”。</code></pre>
+    </section>
+    <div class="footer">
+      VisionFlow · Pure C++ Camera Motion Analysis and Video Stabilization System
+    </div>
+  </main>
+</body>
+</html>
